@@ -1,51 +1,47 @@
-APPNAME:
-    env_file: .env
-    image: 
-    container_name: APPNAME
-    hostname: APPNAME
-    privileged: true
-    networks:
-      - admin
-    volumes:
-      - ./config:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /dev/fuse:/dev/fuse
+name: bookstack
+
+services:
+  bookstack-app:
+    #build:
+    #  context: ./
+    #  dockerfile: ./Dockerfile
+    image: unillett/bookstack:latest
+    depends_on:
+      - bookstack-mysql
+    env_file:
+      - .env
     environment:
-      - VIRTUAL_HOST=APPNAME.admin.pknw1.co.uk
-      - VIRTUAL_PORT=9000
-      - APP_GROUP=Core
-      - APP_LOGO=https://static-00.iconduck.com/assets.00/portainer-icon-1465x2048-t155ekm0.png
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 200M
+      - VIRTUAL_HOST=bookstack.pknw1.co.uk
+      - VIRTUAL_PORT=8080
+      - APP_GROUP=Content
+      - APP_LOGO=https://i.morioh.com/2023/11/06/36f2dc36.webp
+    volumes:
+      # Image uploads location
+      - ./config/uploads:/var/www/bookstack/public/uploads
+      # Attachment uploads location
+      - ./config/uploads-data:/var/www/bookstack/storage/uploads
+    ports:
+      - "127.0.0.1:8282:8080"
+    networks:
+      - proxy
+    container_name: bookstack-app
+    hostname: bookstack-app
+
+  bookstack-mysql:
+    image: mariadb:10.6
+    ports:
+      - "127.0.0.1:3300:3306"
+    env_file:
+      - .env
+    volumes:
+      - ./config/db:/var/lib/mysql
+      - ./import/import.sql:/docker-entrypoint-initdb.d/import.sql
+    networks:
+      - proxy
+    container_name: bookstack-mysql
+    hostname: bookstack-mysql
 
 networks:
-  dmz:
-    name: ${DMZ_NETWORK} 
-    ipam:
-      config:
-        - subnet: ${DMZ_NETWORK_SUBNET}
-          gateway: ${DMZ_NETWORK_ROUTE}
+  proxy:
+    external: true
 
-  public:
-    name: public  
-    ipam:
-      config:
-        - subnet: ${PUBLIC_NETWORK_SUBNET}
-          gateway: ${PUBLIC_NETWORK_ROUTE}
-
-  secure:
-    name: secure
-    ipam:
-      config:
-        - subnet: ${SECURE_NETWORK_SUBNET}
-          gateway: ${SECURE_NETWORK_ROUTE}
-
-  admin:
-    name: admin      
-    ipam:
-      config:
-        - subnet: ${ADMIN_NETWORK_SUBNET}
-          gateway: ${ADMIN_NETWORK_ROUTE}
